@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lz Music</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
+<script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Inter',sans-serif; background:#0b0b0b; color:white; overflow:hidden; }
+.sidebar { width:260px; background:#000; border-right:1px solid #222; }
+.sidebar a { display:flex; align-items:center; gap:12px; padding:14px; border-radius:12px; color:#aaa; font-weight:600; transition:.3s; }
+.sidebar a:hover { background:#181818; color:white; }
+.main { background:linear-gradient(180deg,#1a1a1a,#0b0b0b); }
+.song:hover { background:#1d1d1d; }
+.player-bar { height:90px; background:#111; border-top:1px solid #222; }
+@media(max-width:900px){
+  body { flex-direction:column; overflow:auto; padding-bottom:90px; }
+  .sidebar { display:none; }
+  .mobile-nav { display:flex; position:fixed; bottom:90px; left:0; right:0; height:60px; background:#000; border-top:1px solid #222; z-index:60; justify-content:space-around; align-items:center; }
+  .player-bar { position:fixed; bottom:0; left:0; right:0; z-index:70; }
+}
+</style>
+</head>
+<body class="flex h-screen">
+
+<!-- SIDEBAR -->
+<div class="sidebar p-5 flex-col hidden md:flex">
+  <div class="flex items-center gap-3 mb-8">
+    <div class="w-10 h-10 rounded-full bg-green-500 text-black font-bold flex items-center justify-center">L</div>
+    <h1 class="text-2xl font-bold">Lz Music</h1>
+  </div>
+  <nav class="space-y-2">
+    <a href="#" onclick="showSection('home')"><i class="fas fa-house"></i> Inicio</a>
+    <a href="#" onclick="showSection('search')"><i class="fas fa-search"></i> Buscar</a>
+    <a href="#"><i class="fas fa-book"></i> Biblioteca</a>
+    <a href="#"><i class="fas fa-heart"></i> Favoritos</a>
+    <a href="#"><i class="fas fa-music"></i> Playlists</a>
+  </nav>
+  <div class="mt-auto pt-6">
+    <button onclick="newPlaylist()" class="w-full bg-green-500 hover:bg-green-400 text-black py-3 rounded-full font-bold">
+      <i class="fas fa-plus"></i> Nueva Playlist
+    </button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main flex-1 flex flex-col overflow-hidden">
+  <div class="topbar h-16 flex items-center justify-between px-6 border-b border-zinc-800">
+    <div class="searchbox max-w-xl w-full">
+      <div class="relative">
+        <input id="searchInput" type="text" placeholder="Buscar música..." 
+               class="w-full bg-zinc-900 rounded-full py-3 pl-12 pr-5 outline-none border border-zinc-700"
+               onkeyup="if(event.key==='Enter') searchMusic()">
+        <i class="fas fa-search absolute left-4 top-4 text-zinc-400"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOME -->
+  <div id="homeSection" class="flex-1 overflow-auto p-6">
+    <h2 class="text-3xl font-bold mb-6">Buenas tardes Lz 👋</h2>
+    <h3 class="text-2xl font-bold mb-4">Canciones populares</h3>
+    <div id="songsList" class="space-y-2"></div>
+  </div>
+
+  <!-- SEARCH -->
+  <div id="searchSection" class="hidden flex-1 overflow-auto p-6">
+    <h2 class="text-3xl font-bold mb-5">Resultados</h2>
+    <div id="searchResults"></div>
+  </div>
+</div>
+
+<!-- PLAYER -->
+<div class="player-bar fixed bottom-0 left-0 right-0 flex items-center px-4 gap-4">
+  <div class="flex items-center gap-3 w-1/3">
+    <img id="currentThumbnail" class="w-14 h-14 rounded-lg object-cover">
+    <div class="truncate">
+      <p id="currentTitle" class="font-bold text-sm">Selecciona canción</p>
+      <p id="currentArtist" class="text-xs text-zinc-400">Artista</p>
+    </div>
+  </div>
+  <div class="flex-1">
+    <div id="player"></div>
+  </div>
+  <div class="w-1/4 justify-end gap-3 pc-only flex">
+    <button onclick="prevSong()"><i class="fas fa-backward-step"></i></button>
+    <button onclick="nextSong()"><i class="fas fa-forward-step"></i></button>
+  </div>
+</div>
+
+<!-- NAV MOBILE -->
+<div class="mobile-nav">
+  <button onclick="showSection('home')"><i class="fas fa-house"></i></button>
+  <button onclick="showSection('search')"><i class="fas fa-search"></i></button>
+  <button onclick="newPlaylist()"><i class="fas fa-plus-circle"></i></button>
+  <button onclick="prevSong()"><i class="fas fa-backward-step"></i></button>
+  <button onclick="nextSong()"><i class="fas fa-forward-step"></i></button>
+</div>
+
+<script>
+// ====================== TU API KEY ======================
+const API_KEY = "AIzaSyAPufdiT7TkUKodhGeSbL4Lpf6j-BpZOVg";
+
+// ====================== VARIABLES ======================
+let songs = [];
+let currentSearchResults = [];
+let currentSongIndex = -1;
+let player;
+
+// ====================== CARGAR MÚSICA POPULAR ======================
+async function fetchYouTubeMusic() {
+  try {
+    const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=reggaeton%20latino%202026&type=video&videoCategoryId=10&maxResults=20&key=${API_KEY}`);
+    const data = await res.json();
+
+    songs = data.items.map(item => ({
+      title: item.snippet.title,
+      artist: item.snippet.channelTitle || "Desconocido",
+      ytId: item.id.videoId,
+      thumbnail: item.snippet.thumbnails.medium.url
+    }));
+
+    renderSongs();
+  } catch (e) {
+    console.error(e);
+    alert("Error al cargar canciones de YouTube");
+  }
+}
+
+function renderSongs() {
+  songsList.innerHTML = songs.map((s, i) => `
+    <div onclick="playSong(${i})" class="song flex items-center gap-4 p-3 rounded-xl cursor-pointer">
+      <img src="${s.thumbnail}" class="w-12 h-12 rounded-lg">
+      <div class="flex-1">
+        <p class="font-semibold">${s.title}</p>
+        <p class="text-sm text-zinc-400">${s.artist}</p>
+      </div>
+      <i class="fas fa-play text-green-500"></i>
+    </div>
+  `).join('');
+}
+
+// ====================== REPRODUCIR (usando tu mismo Plyr + YouTube) ======================
+function playSong(i) {
+  currentSongIndex = i;
+  const song = songs[i] || currentSearchResults[i];
+
+  currentThumbnail.src = song.thumbnail;
+  currentTitle.textContent = song.title;
+  currentArtist.textContent = song.artist;
+
+  // ←←← Aquí usamos exactamente el mismo reproductor que tu player externo
+  player.source = {
+    type: 'video',
+    sources: [{
+      src: song.ytId,
+      provider: 'youtube'
+    }]
+  };
+  player.play();
+}
+
+function nextSong() {
+  if (currentSongIndex >= 0) {
+    currentSongIndex = (currentSongIndex + 1) % songs.length;
+    playSong(currentSongIndex);
+  }
+}
+
+function prevSong() {
+  if (currentSongIndex >= 0) {
+    currentSongIndex = (currentSongIndex - 1 + songs.length) % songs.length;
+    playSong(currentSongIndex);
+  }
+}
+
+// ====================== BÚSQUEDA ======================
+async function searchMusic() {
+  const q = searchInput.value.trim();
+  if (!q) return showSection('home');
+
+  showSection('search');
+  searchResults.innerHTML = `<p class="text-zinc-400">Buscando...</p>`;
+
+  try {
+    const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&type=video&videoCategoryId=10&maxResults=15&key=${API_KEY}`);
+    const data = await res.json();
+
+    currentSearchResults = data.items.map(item => ({
+      title: item.snippet.title,
+      artist: item.snippet.channelTitle || "Desconocido",
+      ytId: item.id.videoId,
+      thumbnail: item.snippet.thumbnails.medium.url
+    }));
+
+    searchResults.innerHTML = currentSearchResults.map((song, i) => `
+      <div onclick="playSearchSong(${i})" class="song p-3 rounded-xl cursor-pointer flex gap-4">
+        <img src="${song.thumbnail}" class="w-12 h-12 rounded-lg">
+        <div class="flex-1">
+          <p class="font-semibold">${song.title}</p>
+          <p class="text-sm text-zinc-400">${song.artist}</p>
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {
+    searchResults.innerHTML = `<p class="text-red-400">Error al buscar</p>`;
+  }
+}
+
+function playSearchSong(i) {
+  const song = currentSearchResults[i];
+  currentSongIndex = -1; // para que no interfiera con la lista principal
+  currentThumbnail.src = song.thumbnail;
+  currentTitle.textContent = song.title;
+  currentArtist.textContent = song.artist;
+
+  player.source = {
+    type: 'video',
+    sources: [{ src: song.ytId, provider: 'youtube' }]
+  };
+  player.play();
+}
+
+// ====================== INICIALIZAR ======================
+function init() {
+  player = new Plyr('#player', {
+    controls: ['play', 'progress', 'current-time', 'duration', 'mute', 'volume'],
+    youtube: { noCookie: true, rel: 0 }
+  });
+
+  fetchYouTubeMusic(); // carga canciones populares automáticamente
+}
+
+function showSection(sec) {
+  homeSection.classList.add("hidden");
+  searchSection.classList.add("hidden");
+  if (sec === "home") homeSection.classList.remove("hidden");
+  if (sec === "search") searchSection.classList.remove("hidden");
+}
+
+function newPlaylist() {
+  alert("✅ Playlist creada (próximamente guardaremos con localStorage)");
+}
+
+window.onload = init;
+</script>
+</body>
+</html>
