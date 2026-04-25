@@ -75,21 +75,23 @@ body { font-family:'Inter',sans-serif; background:#0b0b0b; color:white; overflow
   </div>
 </div>
 
-<!-- PLAYER -->
+<!-- PLAYER BAR -->
 <div class="player-bar fixed bottom-0 left-0 right-0 flex items-center px-4 gap-4">
   <div class="flex items-center gap-3 w-1/3">
     <img id="currentThumbnail" class="w-14 h-14 rounded-lg object-cover">
     <div class="truncate">
-      <p id="currentTitle" class="font-bold text-sm">Selecciona canción</p>
+      <p id="currentTitle" class="font-bold text-sm">Selecciona una canción</p>
       <p id="currentArtist" class="text-xs text-zinc-400">Artista</p>
     </div>
   </div>
-  <div class="flex-1">
+
+  <div class="flex-1 max-w-2xl">
     <div id="player"></div>
   </div>
-  <div class="w-1/4 justify-end gap-3 pc-only flex">
-    <button onclick="prevSong()"><i class="fas fa-backward-step"></i></button>
-    <button onclick="nextSong()"><i class="fas fa-forward-step"></i></button>
+
+  <div class="w-1/4 flex justify-end gap-6 text-xl pc-only">
+    <button onclick="prevSong()" title="Anterior"><i class="fas fa-backward-step"></i></button>
+    <button onclick="nextSong()" title="Siguiente"><i class="fas fa-forward-step"></i></button>
   </div>
 </div>
 
@@ -106,13 +108,46 @@ body { font-family:'Inter',sans-serif; background:#0b0b0b; color:white; overflow
 // ====================== TU API KEY ======================
 const API_KEY = "AIzaSyAPufdiT7TkUKodhGeSbL4Lpf6j-BpZOVg";
 
-// ====================== VARIABLES ======================
+// ====================== ELEMENTOS DEL DOM ======================
 let songs = [];
 let currentSearchResults = [];
 let currentSongIndex = -1;
 let player;
 
-// ====================== CARGAR MÚSICA POPULAR ======================
+const songsList = document.getElementById('songsList');
+const searchResults = document.getElementById('searchResults');
+const homeSection = document.getElementById('homeSection');
+const searchSection = document.getElementById('searchSection');
+const currentThumbnail = document.getElementById('currentThumbnail');
+const currentTitle = document.getElementById('currentTitle');
+const currentArtist = document.getElementById('currentArtist');
+const searchInput = document.getElementById('searchInput');
+
+// ====================== INICIALIZAR PLYR CON CONTROLES COMPLETOS ======================
+function initPlayer() {
+  player = new Plyr('#player', {
+    controls: [
+      'play-large',     // botón grande en el centro
+      'rewind',         // ← 10 segundos
+      'play',           // ▶️ / ⏸️
+      'fast-forward',   // → 10 segundos
+      'progress',       // barra de progreso
+      'current-time',
+      'duration',
+      'mute',
+      'volume',
+      'settings'
+    ],
+    youtube: {
+      noCookie: true,
+      rel: 0,
+      modestbranding: 1
+    },
+    seekTime: 10          // cada clic en rewind/fast-forward avanza 10 segundos
+  });
+}
+
+// ====================== CARGAR CANCIONES POPULARES ======================
 async function fetchYouTubeMusic() {
   try {
     const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=reggaeton%20latino%202026&type=video&videoCategoryId=10&maxResults=20&key=${API_KEY}`);
@@ -128,7 +163,7 @@ async function fetchYouTubeMusic() {
     renderSongs();
   } catch (e) {
     console.error(e);
-    alert("Error al cargar canciones de YouTube");
+    alert("Error al cargar música de YouTube (revisa tu API Key)");
   }
 }
 
@@ -145,22 +180,27 @@ function renderSongs() {
   `).join('');
 }
 
-// ====================== REPRODUCIR (usando tu mismo Plyr + YouTube) ======================
+// ====================== REPRODUCIR ======================
 function playSong(i) {
   currentSongIndex = i;
-  const song = songs[i] || currentSearchResults[i];
+  const song = songs[i];
+  playTrack(song);
+}
 
+function playSearchSong(i) {
+  currentSongIndex = -1;
+  const song = currentSearchResults[i];
+  playTrack(song);
+}
+
+function playTrack(song) {
   currentThumbnail.src = song.thumbnail;
   currentTitle.textContent = song.title;
   currentArtist.textContent = song.artist;
 
-  // ←←← Aquí usamos exactamente el mismo reproductor que tu player externo
   player.source = {
     type: 'video',
-    sources: [{
-      src: song.ytId,
-      provider: 'youtube'
-    }]
+    sources: [{ src: song.ytId, provider: 'youtube' }]
   };
   player.play();
 }
@@ -212,30 +252,6 @@ async function searchMusic() {
   }
 }
 
-function playSearchSong(i) {
-  const song = currentSearchResults[i];
-  currentSongIndex = -1; // para que no interfiera con la lista principal
-  currentThumbnail.src = song.thumbnail;
-  currentTitle.textContent = song.title;
-  currentArtist.textContent = song.artist;
-
-  player.source = {
-    type: 'video',
-    sources: [{ src: song.ytId, provider: 'youtube' }]
-  };
-  player.play();
-}
-
-// ====================== INICIALIZAR ======================
-function init() {
-  player = new Plyr('#player', {
-    controls: ['play', 'progress', 'current-time', 'duration', 'mute', 'volume'],
-    youtube: { noCookie: true, rel: 0 }
-  });
-
-  fetchYouTubeMusic(); // carga canciones populares automáticamente
-}
-
 function showSection(sec) {
   homeSection.classList.add("hidden");
   searchSection.classList.add("hidden");
@@ -244,10 +260,14 @@ function showSection(sec) {
 }
 
 function newPlaylist() {
-  alert("✅ Playlist creada (próximamente guardaremos con localStorage)");
+  alert("✅ Playlist creada (próximamente se guardará)");
 }
 
-window.onload = init;
+// ====================== INICIAR TODO ======================
+window.onload = () => {
+  initPlayer();
+  fetchYouTubeMusic();
+};
 </script>
 </body>
 </html>
