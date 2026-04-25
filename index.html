@@ -1,273 +1,452 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lz Music</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
-<script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-* { margin:0; padding:0; box-sizing:border-box; }
-body { font-family:'Inter',sans-serif; background:#0b0b0b; color:white; overflow:hidden; }
-.sidebar { width:260px; background:#000; border-right:1px solid #222; }
-.sidebar a { display:flex; align-items:center; gap:12px; padding:14px; border-radius:12px; color:#aaa; font-weight:600; transition:.3s; }
-.sidebar a:hover { background:#181818; color:white; }
-.main { background:linear-gradient(180deg,#1a1a1a,#0b0b0b); }
-.song:hover { background:#1d1d1d; }
-.player-bar { height:90px; background:#111; border-top:1px solid #222; }
-@media(max-width:900px){
-  body { flex-direction:column; overflow:auto; padding-bottom:90px; }
-  .sidebar { display:none; }
-  .mobile-nav { display:flex; position:fixed; bottom:90px; left:0; right:0; height:60px; background:#000; border-top:1px solid #222; z-index:60; justify-content:space-around; align-items:center; }
-  .player-bar { position:fixed; bottom:0; left:0; right:0; z-index:70; }
-}
-</style>
+    <meta charset="UTF-8">
+    <title>Movie & TV Explorer</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial;
+            background: #0b0b12;
+            color: white;
+            overflow-x: hidden;
+        }
+        /* HEADER */
+        header {
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            position: sticky;
+            top: 0;
+            background: #0b0b12;
+            z-index: 100;
+        }
+        #search {
+            width: 420px;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            background: #1b1b2b;
+            color: white;
+            font-size: 16px;
+            outline: none;
+        }
+        /* SEARCH DROPDOWN */
+        #suggestions {
+            position: absolute;
+            top: 70px;
+            width: 420px;
+            background: #14141f;
+            border-radius: 10px;
+            overflow: hidden;
+            display: none;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+        }
+        .suggestion {
+            display: flex;
+            gap: 10px;
+            padding: 10px;
+            cursor: pointer;
+            align-items: center;
+            transition: .2s;
+        }
+        .suggestion:hover {
+            background: #8B5CF6;
+        }
+        .suggestion img {
+            width: 40px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+        .suggestionInfo {
+            display: flex;
+            flex-direction: column;
+            font-size: 14px;
+        }
+        .suggestionMeta {
+            font-size: 12px;
+            color: #ccc;
+        }
+        /* SECTIONS */
+        .section {
+            padding-left: 20px;
+            margin-top: 20px;
+            font-size: 22px;
+        }
+        /* SLIDERS */
+        .rowContainer {
+            position: relative;
+        }
+        .row {
+            display: flex;
+            overflow-x: auto;
+            overflow-y: hidden;
+            gap: 14px;
+            padding: 20px;
+            scroll-behavior: smooth;
+        }
+        .row::-webkit-scrollbar {
+            display: none;
+        }
+        /* ARROWS */
+        .arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            border: none;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+            padding: 10px 16px;
+            z-index: 5;
+        }
+        .arrowLeft { left: 0; }
+        .arrowRight { right: 0; }
+        /* CARDS */
+        .card {
+            min-width: 160px;
+            cursor: pointer;
+            transition: transform .25s ease, box-shadow .25s ease;
+        }
+        .card img {
+            width: 100%;
+            border-radius: 8px;
+        }
+        .card:hover {
+            transform: scale(1.12);
+            z-index: 10;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
+        }
+        /* TOP 10 */
+        .rankCard {
+            position: relative;
+            min-width: 200px;
+            cursor: pointer;
+            transition: transform .25s ease, box-shadow .25s ease;
+        }
+        .rankCard img {
+            width: 180px;
+            border-radius: 8px;
+        }
+        .rankCard:hover {
+            transform: scale(1.12);
+            z-index: 10;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
+        }
+        .rankNumber {
+            position: absolute;
+            left: -10px;
+            bottom: -10px;
+            font-size: 120px;
+            font-weight: bold;
+            color: #8B5CF6;
+            opacity: .25;
+            pointer-events: none;
+        }
+        /* SEARCH GRID */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 18px;
+            padding: 20px;
+        }
+        /* DETAILS PAGE */
+        #details {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0b0b12;
+            display: none;
+            overflow-y: auto;
+            z-index: 200;
+        }
+        /* BANNER */
+        #banner {
+            height: 420px;
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: end;
+            padding: 40px;
+        }
+        .bannerContent {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 600px;
+        }
+        /* BUTTONS */
+        #backBtn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 22px;
+            cursor: pointer;
+        }
+        #launchBtn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #8B5CF6;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        /* TV SELECTOR */
+        #launchOverlay {
+            position: absolute;
+            top: 100px;
+            right: 30px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 18px;
+            border-radius: 10px;
+            display: none;
+        }
+        select,
+        button {
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            margin-top: 8px;
+        }
+        #confirmLaunch {
+            background: #8B5CF6;
+            color: white;
+            cursor: pointer;
+            width: 100%;
+        }
+        /* CAST */
+        .castRow {
+            display: flex;
+            gap: 15px;
+            overflow-x: auto;
+            padding: 20px;
+        }
+        .castCard {
+            min-width: 120px;
+            text-align: center;
+        }
+        .castCard img {
+            width: 100%;
+            border-radius: 8px;
+        }
+    </style>
 </head>
-<body class="flex h-screen">
-
-<!-- SIDEBAR -->
-<div class="sidebar p-5 flex-col hidden md:flex">
-  <div class="flex items-center gap-3 mb-8">
-    <div class="w-10 h-10 rounded-full bg-green-500 text-black font-bold flex items-center justify-center">L</div>
-    <h1 class="text-2xl font-bold">Lz Music</h1>
-  </div>
-  <nav class="space-y-2">
-    <a href="#" onclick="showSection('home')"><i class="fas fa-house"></i> Inicio</a>
-    <a href="#" onclick="showSection('search')"><i class="fas fa-search"></i> Buscar</a>
-    <a href="#"><i class="fas fa-book"></i> Biblioteca</a>
-    <a href="#"><i class="fas fa-heart"></i> Favoritos</a>
-    <a href="#"><i class="fas fa-music"></i> Playlists</a>
-  </nav>
-  <div class="mt-auto pt-6">
-    <button onclick="newPlaylist()" class="w-full bg-green-500 hover:bg-green-400 text-black py-3 rounded-full font-bold">
-      <i class="fas fa-plus"></i> Nueva Playlist
-    </button>
-  </div>
-</div>
-
-<!-- MAIN -->
-<div class="main flex-1 flex flex-col overflow-hidden">
-  <div class="topbar h-16 flex items-center justify-between px-6 border-b border-zinc-800">
-    <div class="searchbox max-w-xl w-full">
-      <div class="relative">
-        <input id="searchInput" type="text" placeholder="Buscar música..." 
-               class="w-full bg-zinc-900 rounded-full py-3 pl-12 pr-5 outline-none border border-zinc-700"
-               onkeyup="if(event.key==='Enter') searchMusic()">
-        <i class="fas fa-search absolute left-4 top-4 text-zinc-400"></i>
-      </div>
-    </div>
-  </div>
-
-  <!-- HOME -->
-  <div id="homeSection" class="flex-1 overflow-auto p-6">
-    <h2 class="text-3xl font-bold mb-6">Buenas tardes Lz 👋</h2>
-    <h3 class="text-2xl font-bold mb-4">Canciones populares</h3>
-    <div id="songsList" class="space-y-2"></div>
-  </div>
-
-  <!-- SEARCH -->
-  <div id="searchSection" class="hidden flex-1 overflow-auto p-6">
-    <h2 class="text-3xl font-bold mb-5">Resultados</h2>
-    <div id="searchResults"></div>
-  </div>
-</div>
-
-<!-- PLAYER BAR -->
-<div class="player-bar fixed bottom-0 left-0 right-0 flex items-center px-4 gap-4">
-  <div class="flex items-center gap-3 w-1/3">
-    <img id="currentThumbnail" class="w-14 h-14 rounded-lg object-cover">
-    <div class="truncate">
-      <p id="currentTitle" class="font-bold text-sm">Selecciona una canción</p>
-      <p id="currentArtist" class="text-xs text-zinc-400">Artista</p>
-    </div>
-  </div>
-
-  <div class="flex-1 max-w-2xl">
-    <div id="player"></div>
-  </div>
-
-  <div class="w-1/4 flex justify-end gap-6 text-xl pc-only">
-    <button onclick="prevSong()" title="Anterior"><i class="fas fa-backward-step"></i></button>
-    <button onclick="nextSong()" title="Siguiente"><i class="fas fa-forward-step"></i></button>
-  </div>
-</div>
-
-<!-- NAV MOBILE -->
-<div class="mobile-nav">
-  <button onclick="showSection('home')"><i class="fas fa-house"></i></button>
-  <button onclick="showSection('search')"><i class="fas fa-search"></i></button>
-  <button onclick="newPlaylist()"><i class="fas fa-plus-circle"></i></button>
-  <button onclick="prevSong()"><i class="fas fa-backward-step"></i></button>
-  <button onclick="nextSong()"><i class="fas fa-forward-step"></i></button>
-</div>
-
-<script>
-// ====================== TU API KEY ======================
-const API_KEY = "AIzaSyAPufdiT7TkUKodhGeSbL4Lpf6j-BpZOVg";
-
-// ====================== ELEMENTOS DEL DOM ======================
-let songs = [];
-let currentSearchResults = [];
-let currentSongIndex = -1;
-let player;
-
-const songsList = document.getElementById('songsList');
-const searchResults = document.getElementById('searchResults');
-const homeSection = document.getElementById('homeSection');
-const searchSection = document.getElementById('searchSection');
-const currentThumbnail = document.getElementById('currentThumbnail');
-const currentTitle = document.getElementById('currentTitle');
-const currentArtist = document.getElementById('currentArtist');
-const searchInput = document.getElementById('searchInput');
-
-// ====================== INICIALIZAR PLYR CON CONTROLES COMPLETOS ======================
-function initPlayer() {
-  player = new Plyr('#player', {
-    controls: [
-      'play-large',     // botón grande en el centro
-      'rewind',         // ← 10 segundos
-      'play',           // ▶️ / ⏸️
-      'fast-forward',   // → 10 segundos
-      'progress',       // barra de progreso
-      'current-time',
-      'duration',
-      'mute',
-      'volume',
-      'settings'
-    ],
-    youtube: {
-      noCookie: true,
-      rel: 0,
-      modestbranding: 1
-    },
-    seekTime: 10          // cada clic en rewind/fast-forward avanza 10 segundos
-  });
-}
-
-// ====================== CARGAR CANCIONES POPULARES ======================
-async function fetchYouTubeMusic() {
-  try {
-    const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=reggaeton%20latino%202026&type=video&videoCategoryId=10&maxResults=20&key=${API_KEY}`);
-    const data = await res.json();
-
-    songs = data.items.map(item => ({
-      title: item.snippet.title,
-      artist: item.snippet.channelTitle || "Desconocido",
-      ytId: item.id.videoId,
-      thumbnail: item.snippet.thumbnails.medium.url
-    }));
-
-    renderSongs();
-  } catch (e) {
-    console.error(e);
-    alert("Error al cargar música de YouTube (revisa tu API Key)");
-  }
-}
-
-function renderSongs() {
-  songsList.innerHTML = songs.map((s, i) => `
-    <div onclick="playSong(${i})" class="song flex items-center gap-4 p-3 rounded-xl cursor-pointer">
-      <img src="${s.thumbnail}" class="w-12 h-12 rounded-lg">
-      <div class="flex-1">
-        <p class="font-semibold">${s.title}</p>
-        <p class="text-sm text-zinc-400">${s.artist}</p>
-      </div>
-      <i class="fas fa-play text-green-500"></i>
-    </div>
-  `).join('');
-}
-
-// ====================== REPRODUCIR ======================
-function playSong(i) {
-  currentSongIndex = i;
-  const song = songs[i];
-  playTrack(song);
-}
-
-function playSearchSong(i) {
-  currentSongIndex = -1;
-  const song = currentSearchResults[i];
-  playTrack(song);
-}
-
-function playTrack(song) {
-  currentThumbnail.src = song.thumbnail;
-  currentTitle.textContent = song.title;
-  currentArtist.textContent = song.artist;
-
-  player.source = {
-    type: 'video',
-    sources: [{ src: song.ytId, provider: 'youtube' }]
-  };
-  player.play();
-}
-
-function nextSong() {
-  if (currentSongIndex >= 0) {
-    currentSongIndex = (currentSongIndex + 1) % songs.length;
-    playSong(currentSongIndex);
-  }
-}
-
-function prevSong() {
-  if (currentSongIndex >= 0) {
-    currentSongIndex = (currentSongIndex - 1 + songs.length) % songs.length;
-    playSong(currentSongIndex);
-  }
-}
-
-// ====================== BÚSQUEDA ======================
-async function searchMusic() {
-  const q = searchInput.value.trim();
-  if (!q) return showSection('home');
-
-  showSection('search');
-  searchResults.innerHTML = `<p class="text-zinc-400">Buscando...</p>`;
-
-  try {
-    const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&type=video&videoCategoryId=10&maxResults=15&key=${API_KEY}`);
-    const data = await res.json();
-
-    currentSearchResults = data.items.map(item => ({
-      title: item.snippet.title,
-      artist: item.snippet.channelTitle || "Desconocido",
-      ytId: item.id.videoId,
-      thumbnail: item.snippet.thumbnails.medium.url
-    }));
-
-    searchResults.innerHTML = currentSearchResults.map((song, i) => `
-      <div onclick="playSearchSong(${i})" class="song p-3 rounded-xl cursor-pointer flex gap-4">
-        <img src="${song.thumbnail}" class="w-12 h-12 rounded-lg">
-        <div class="flex-1">
-          <p class="font-semibold">${song.title}</p>
-          <p class="text-sm text-zinc-400">${song.artist}</p>
+<body>
+    <header>
+        <div style="position:relative">
+            <input id="search" placeholder="Search movies or TV shows">
+            <div id="suggestions"></div>
         </div>
-      </div>
-    `).join('');
-  } catch (e) {
-    searchResults.innerHTML = `<p class="text-red-400">Error al buscar</p>`;
-  }
-}
+    </header>
 
-function showSection(sec) {
-  homeSection.classList.add("hidden");
-  searchSection.classList.add("hidden");
-  if (sec === "home") homeSection.classList.remove("hidden");
-  if (sec === "search") searchSection.classList.remove("hidden");
-}
+    <div class="section">Top 10 Movies Today</div>
+    <div class="rowContainer">
+        <button class="arrow arrowLeft" onclick="slide('movies',-1)">❮</button>
+        <div id="movies" class="row"></div>
+        <button class="arrow arrowRight" onclick="slide('movies',1)">❯</button>
+    </div>
 
-function newPlaylist() {
-  alert("✅ Playlist creada (próximamente se guardará)");
-}
+    <div class="section">Top 10 TV Shows Today</div>
+    <div class="rowContainer">
+        <button class="arrow arrowLeft" onclick="slide('tv',-1)">❮</button>
+        <div id="tv" class="row"></div>
+        <button class="arrow arrowRight" onclick="slide('tv',1)">❯</button>
+    </div>
 
-// ====================== INICIAR TODO ======================
-window.onload = () => {
-  initPlayer();
-  fetchYouTubeMusic();
-};
-</script>
+    <div id="results" class="grid"></div>
+
+    <!-- DETAILS -->
+    <div id="details">
+        <button id="backBtn">← Back</button>
+        <button id="launchBtn">Launch</button>
+
+        <div id="launchOverlay">
+            <select id="seasonSelect"></select>
+            <select id="episodeSelect"></select>
+            <button id="confirmLaunch">Confirm</button>
+        </div>
+
+        <div id="banner">
+            <div class="bannerContent">
+                <h1 id="title"></h1>
+                <p id="overview"></p>
+                <p id="rating"></p>
+                <p id="genres"></p>
+            </div>
+        </div>
+
+        <div class="section">Cast</div>
+        <div id="cast" class="castRow"></div>
+    </div>
+
+    <script>
+        const API_KEY = "3a591d9ea5339b99994d6366821b4b42";
+        const IMG = "https://image.tmdb.org/t/p/w500";
+
+        const search = document.getElementById("search");
+        const suggestions = document.getElementById("suggestions");
+        const results = document.getElementById("results");
+
+        let currentID = null;
+        let currentType = null;
+
+        async function fetchData(url) {
+            const res = await fetch(url);
+            return res.json();
+        }
+
+        function slide(id, dir) {
+            document.getElementById(id).scrollBy({ left: dir * 500, behavior: "smooth" });
+        }
+
+        /* TRENDING */
+        async function loadTrending() {
+            const moviesData = await fetchData(`https://api.themoviedb.org/3/trending/movie/day?api_key=${API_KEY}`);
+            document.getElementById("movies").innerHTML = moviesData.results.slice(0, 10).map((x, i) =>
+                `<div class="rankCard" onclick="openDetails(${x.id},'movie')">
+                    <div class="rankNumber">${i + 1}</div>
+                    <img src="${IMG + x.poster_path}">
+                </div>`
+            ).join("");
+
+            const tvData = await fetchData(`https://api.themoviedb.org/3/trending/tv/day?api_key=${API_KEY}`);
+            document.getElementById("tv").innerHTML = tvData.results.slice(0, 10).map((x, i) =>
+                `<div class="rankCard" onclick="openDetails(${x.id},'tv')">
+                    <div class="rankNumber">${i + 1}</div>
+                    <img src="${IMG + x.poster_path}">
+                </div>`
+            ).join("");
+        }
+
+        /* SEARCH */
+        search.addEventListener("input", async () => {
+            const q = search.value.trim();
+            if (q.length < 2) {
+                suggestions.style.display = "none";
+                return;
+            }
+
+            const data = await fetchData(`https://api.themoviedb.org/3/search/multi?api_key=${API_KEY}&query=${encodeURIComponent(q)}`);
+
+            const filtered = data.results.filter(x => x.media_type === "movie" || x.media_type === "tv");
+
+            suggestions.innerHTML = filtered.slice(0, 6).map(x => {
+                const title = x.title || x.name;
+                const poster = x.poster_path ? IMG + x.poster_path : "";
+                const year = (x.release_date || x.first_air_date || "").slice(0, 4);
+                const rating = x.vote_average ? x.vote_average.toFixed(1) : "N/A";
+
+                return `<div class="suggestion" onclick="openDetails(${x.id},'${x.media_type}')">
+                    <img src="${poster}">
+                    <div class="suggestionInfo">
+                        <div>${title}</div>
+                        <div class="suggestionMeta">${year} • ⭐ ${rating}</div>
+                    </div>
+                </div>`;
+            }).join("");
+
+            suggestions.style.display = "block";
+        });
+
+        /* DETAILS */
+        async function openDetails(id, type) {
+            currentID = id;
+            currentType = type;
+
+            document.getElementById("launchOverlay").style.display = "none";
+            document.getElementById("seasonSelect").innerHTML = "";
+            document.getElementById("episodeSelect").innerHTML = "";
+
+            const data = await fetchData(`https://api.themoviedb.org/3/${type}/${id}?api_key=${API_KEY}`);
+
+            document.getElementById("banner").style.backgroundImage = `ur[](https://image.tmdb.org/t/p/original${data.backdrop_path})`;
+            document.getElementById("title").textContent = data.title || data.name;
+            document.getElementById("overview").textContent = data.overview || "No overview available.";
+            document.getElementById("rating").textContent = `⭐ ${data.vote_average ? data.vote_average.toFixed(1) : "N/A"}`;
+            document.getElementById("genres").textContent = data.genres ? data.genres.map(g => g.name).join(", ") : "";
+
+            document.getElementById("details").style.display = "block";
+
+            loadCast(id, type);
+
+            if (type === "tv") {
+                loadSeasons(id);
+            }
+        }
+
+        /* CAST */
+        async function loadCast(id, type) {
+            const data = await fetchData(`https://api.themoviedb.org/3/${type}/${id}/credits?api_key=${API_KEY}`);
+            document.getElementById("cast").innerHTML = data.cast.slice(0, 12).map(actor =>
+                `<div class="castCard">
+                    <img src="${IMG + (actor.profile_path || '')}">
+                    <div>${actor.name}</div>
+                </div>`
+            ).join("");
+        }
+
+        /* TV SEASONS */
+        async function loadSeasons(id) {
+            const data = await fetchData(`https://api.themoviedb.org/3/tv/${id}?api_key=${API_KEY}`);
+            const seasonSelect = document.getElementById("seasonSelect");
+            seasonSelect.innerHTML = "";
+
+            data.seasons.forEach(s => {
+                if (s.season_number === 0) return;
+                seasonSelect.innerHTML += `<option value="${s.season_number}">Season ${s.season_number}</option>`;
+            });
+
+            loadEpisodes();
+        }
+
+        async function loadEpisodes() {
+            const season = document.getElementById("seasonSelect").value;
+            if (!season) return;
+
+            const data = await fetchData(`https://api.themoviedb.org/3/tv/${currentID}/season/${season}?api_key=${API_KEY}`);
+            const ep = document.getElementById("episodeSelect");
+            ep.innerHTML = "";
+
+            data.episodes.forEach(e => {
+                ep.innerHTML += `<option value="${e.episode_number}">Episode ${e.episode_number}</option>`;
+            });
+        }
+
+        document.getElementById("seasonSelect").addEventListener("change", loadEpisodes);
+
+        /* PLAYER */
+        document.getElementById("launchBtn").onclick = () => {
+            if (currentType === "movie") {
+                window.open(`https://vidlink.pro/movie/${currentID}`, "_blank");
+            } else {
+                document.getElementById("launchOverlay").style.display = "block";
+            }
+        };
+
+        document.getElementById("confirmLaunch").onclick = () => {
+            const s = document.getElementById("seasonSelect").value;
+            const e = document.getElementById("episodeSelect").value;
+            window.open(`https://vidlink.pro/tv/${currentID}/${s}/${e}`, "_blank");
+        };
+
+        /* CLOSE */
+        document.getElementById("backBtn").onclick = () => {
+            document.getElementById("details").style.display = "none";
+        };
+
+        /* INIT */
+        loadTrending();
+    </script>
 </body>
 </html>
