@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prueba Vidmoly</title>
+
+<style>
+body{
+    margin:0;
+    background:#111;
+    color:#fff;
+    font-family:Arial,sans-serif;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+}
+
+.player-container{
+    width:95%;
+    max-width:1200px;
+    aspect-ratio:16/9;
+    background:#000;
+    border-radius:12px;
+    overflow:hidden;
+    box-shadow:0 0 30px rgba(0,0,0,.5);
+}
+
+iframe{
+    width:100%;
+    height:100%;
+    border:none;
+}
+</style>
+</head>
+<body>
+
+<div class="player-container">
+    <iframe
+        id="player"
+        src="https://vidmoly.biz/embed-ha22xj0ohunx.html"
+        allowfullscreen
+        sandbox="allow-scripts allow-same-origin allow-presentation">
+    </iframe>
+</div>
+
+<script>
+// Bloquear window.open en esta página
+window.open = function() {
+    console.log("Popup bloqueado");
+    return null;
+};
+
+// Detectar pérdida de foco (posible popup)
+window.addEventListener("blur", () => {
+    console.log("Posible intento de popup");
+});
+
+// Evitar clic derecho
+document.addEventListener("contextmenu", e => e.preventDefault());
+
+// Evitar arrastrar enlaces
+document.addEventListener("dragstart", e => e.preventDefault());
+</script>
+
+</body>
+</html>
